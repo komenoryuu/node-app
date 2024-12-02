@@ -1,6 +1,8 @@
 const express = require('express')
 const chalk = require('chalk')
 const path = require('path')
+const mongoose = require('mongoose')
+const { note } = require('./models/note')
 const { addNote, getNotes, removeNote, editNote } = require('./notes.controller')
 
 const port = 3000
@@ -22,16 +24,29 @@ app.get('/', async (req, res) => {
 		title: 'Express App',
 		notes: await getNotes(),
 		created: false,
+		error: false,
 	})
 })
 
 app.post('/', async (req, res) => {
-	await addNote(req.body.title)
-	res.render('index', {
-		title: 'Express App',
-		notes: await getNotes(),
-		created: true,
-	})
+	try {
+		await addNote(req.body.title)
+		res.render('index', {
+			title: 'Express App',
+			notes: await getNotes(),
+			created: true,
+			error: false,
+		})
+	} catch (error) {
+		console.log(`Creating error: ${error}`)
+
+		res.render('index', {
+			title: 'Express App',
+			notes: await getNotes(),
+			created: false,
+			error: true,
+		})
+	}
 })
 
 app.delete('/:id', async (req, res) => {
@@ -41,6 +56,7 @@ app.delete('/:id', async (req, res) => {
 		title: 'Express App',
 		notes: await getNotes(),
 		created: false,
+		error: false,
 	})
 })
 
@@ -53,6 +69,12 @@ app.put('/:id', async (req, res) => {
 	res.json({ id, title: newTitle })
 })
 
-app.listen(port, () => {
-	console.log(chalk.bgGreen(`Server has been started on port ${port}...`))
-})
+mongoose
+	.connect(
+		'MONGODB_CLUSTER_URL',
+	)
+	.then(() => {
+		app.listen(port, () => {
+			console.log(chalk.bgGreen(`Server has been started on port ${port}...`))
+		})
+	})
